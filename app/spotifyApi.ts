@@ -1,11 +1,15 @@
 export async function getNumUserPlaylists(accessToken: string, options = {}) {
   return fetchEndpoint(`https://api.spotify.com/v1/me/playlists`, accessToken, {
-    limit: 1,
+    limit: "1",
     ...options,
   }).then((body) => body.total);
 }
 
-async function fetchEndpoint(endpoint, accessToken, options) {
+async function fetchEndpoint(
+  endpoint: string,
+  accessToken: string,
+  options: Record<string, string>,
+): Promise<any> {
   let url = endpoint;
   if (Object.keys(options).length != 0) {
     url += "?" + new URLSearchParams(options);
@@ -21,7 +25,7 @@ async function fetchEndpoint(endpoint, accessToken, options) {
   );
 }
 
-async function success(response, tryAgain) {
+async function success(response: Response, tryAgain: () => Promise<any>) {
   if (!response.ok) {
     if (response.status == 429) {
       // Too Many Requests
@@ -39,6 +43,6 @@ async function success(response, tryAgain) {
   return response.json();
 }
 
-async function rejected(reason) {
+async function rejected(reason: string) {
   throw new Error("Rejected:" + reason);
 }

@@ -1,21 +1,25 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth, { type User, type Session } from "next-auth";
+import { type JWT } from "next-auth/jwt";
 import Spotify from "next-auth/providers/spotify";
 
+interface AccessToken {
+  accessToken?: string;
+  refreshToken?: string;
+}
 declare module "next-auth" {
   /**
    * Returned by `auth`, `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
    */
   interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    } & DefaultSession["user"];
-    accessToken: {
-      access_token: string;
-      refresh_token: string;
-    };
+    accessToken: AccessToken;
+  }
+}
+
+declare module "next-auth/jwt" {
+  /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
+  interface JWT {
+    user: User;
+    accessToken?: AccessToken;
   }
 }
 
@@ -36,19 +40,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.log("jwt callback", { token, account, user });
       if (account) {
         token.accessToken = {
-          access_token: account.access_token,
-          refresh_token: account.refresh_token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
         };
       }
-      if (user) {
-        token.user = user;
-      }
+      token.user = user;
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       console.log("session callback", { session, token });
-      if (session.user) {
-        session.user.id = session.user.id;
+      if (token.user) {
+        session.user = {
+          ...token.user,
+          ...user,
+        };
       }
       if (token.accessToken) {
         session.accessToken = token.accessToken;

@@ -37,15 +37,13 @@ function SignOut({
 export default async function Home() {
   const session = await auth();
   console.log("session", session);
-  if (!session?.accessToken)
+  if (!session?.accessToken?.accessToken)
     return (
       <div>
         <SignIn />
       </div>
     );
-  let numPlaylists = await getNumUserPlaylists(
-    session.accessToken.access_token,
-  );
+  let numPlaylists = await getNumUserPlaylists(session.accessToken.accessToken);
   console.log("numPlaylists", numPlaylists);
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
