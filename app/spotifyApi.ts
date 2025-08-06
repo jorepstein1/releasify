@@ -1,3 +1,24 @@
+export interface Track {
+  name: string;
+}
+
+export interface Album {
+  tracks: {
+    items: Track[];
+  };
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  tracks: {
+    total: number;
+    items: {
+      track: Track;
+    }[];
+  };
+}
+
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -12,6 +33,100 @@ export async function getNumUserPlaylists(
     limit: "1",
     ...options,
   }).then((body) => body.total);
+}
+
+export async function getTracksFromAlbums(
+  albumIds: string[],
+  accessToken: string,
+  options = {},
+): Promise<Track[]> {
+  let albumPromise = fetchEndpoint(
+    "https://api.spotify.com/v1/albums",
+    accessToken,
+    {
+      ids: albumIds,
+      ...options,
+    },
+  ) as Promise<{ albums: Album[] }>;
+
+  return albumPromise
+    .then((body) => body.albums)
+    .then((albums) => albums.flatMap((album) => album.tracks.items));
+}
+
+/**
+ * Artists
+ */
+
+export async function getArtistAlbums(
+  artistId: string,
+  accessToken: string,
+  options = {},
+): Promise<Album[]> {
+  return fetchEndpoint(
+    `https://api.spotify.com/v1/artists/${artistId}/albums`,
+    accessToken,
+    options,
+  ).then((body) => body.items);
+}
+
+export async function getNumArtistsAlbums(
+  artistId: string,
+  accessToken: string,
+  options = {},
+): Promise<number> {
+  return fetchEndpoint(
+    `https://api.spotify.com/v1/artists/${artistId}/albums`,
+    accessToken,
+    { limit: 1, ...options },
+  ).then((body) => body.total);
+}
+
+/**
+ * PLAYLISTS
+ */
+
+export async function getUserPlaylists(
+  accessToken: string,
+  options = {},
+): Promise<Playlist[]> {
+  return fetchEndpoint(
+    `https://api.spotify.com/v1/me/playlists`,
+    accessToken,
+    options,
+  ).then((body) => body.items);
+}
+
+export async function getPlaylistTracks(
+  playlistId: string,
+  accessToken: string,
+  options = {},
+): Promise<Track[]> {
+  return getPlaylist(playlistId, accessToken, options).then((body) =>
+    body.tracks.items.map((item) => item.track),
+  );
+}
+
+export async function getNumPlaylistTracks(
+  playlistId: string,
+  accessToken: string,
+  options = {},
+): Promise<number> {
+  return getPlaylist(playlistId, accessToken, options).then(
+    (body) => body.tracks.total,
+  );
+}
+
+async function getPlaylist(
+  playlistId: string,
+  accessToken: string,
+  options = {},
+): Promise<Playlist> {
+  return fetchEndpoint(
+    `https://api.spotify.com/v1/playlists/${playlistId}`,
+    accessToken,
+    options,
+  );
 }
 
 export async function performTokenRefresh(refreshToken: string): Promise<{
@@ -46,7 +161,7 @@ export async function performTokenRefresh(refreshToken: string): Promise<{
 async function fetchEndpoint(
   endpoint: string,
   accessToken: string,
-  options: Record<string, string>,
+  options: Record<string, any>,
 ): Promise<any> {
   let url = endpoint;
   if (Object.keys(options).length != 0) {
