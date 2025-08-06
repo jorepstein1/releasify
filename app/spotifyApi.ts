@@ -1,8 +1,46 @@
-export async function getNumUserPlaylists(accessToken: string, options = {}) {
+const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
+const client_id = process.env.SPOTIFY_CLIENT_ID;
+const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
+const basic = Buffer.from(`${client_id}:${client_secret}`).toString("base64");
+
+export async function getNumUserPlaylists(
+  accessToken: string,
+  options = {},
+): Promise<string> {
+  console.log("Getting num playlists");
   return fetchEndpoint(`https://api.spotify.com/v1/me/playlists`, accessToken, {
     limit: "1",
     ...options,
   }).then((body) => body.total);
+}
+
+export async function performTokenRefresh(refreshToken: string): Promise<{
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
+}> {
+  return await fetch(TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  })
+    .then(
+      (response) => success(response, () => performTokenRefresh(refreshToken)),
+      rejected,
+    )
+    .then((body) => {
+      return {
+        access_token: body.access_token,
+        refresh_token: body.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000 + body.expires_in),
+      };
+    });
 }
 
 async function fetchEndpoint(
@@ -38,7 +76,7 @@ async function success(response: Response, tryAgain: () => Promise<any>) {
       // Service Unavailable
       return tryAgain();
     }
-    throw new Error("HTTP Status: " + response.status);
+    throw new Error(`HTTP Status: ${response.status} ${response.statusText}`);
   }
   return response.json();
 }
