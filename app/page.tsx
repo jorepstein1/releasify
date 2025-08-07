@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { auth, signIn, signOut } from "@/auth";
-import { getNumUserPlaylists } from "@/app/spotifyApi";
+import { getNumUserPlaylists, getUserPlaylists } from "@/app/spotifyApi";
+import { Playlists } from "./ui/playlists";
 
 function SignIn({
   provider,
@@ -43,15 +44,14 @@ export default async function Home() {
         <SignIn />
       </div>
     );
-  let numPlaylists = await getNumUserPlaylists(session.access_token);
-  console.log("numPlaylists", numPlaylists);
+  const playlists = await getUserPlaylists(session.access_token);
   return (
     <div>
       <header>
         <SignOut />
       </header>
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <div>{numPlaylists}</div>
+        <Playlists playlists={playlists} />
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <div>footer</div>
