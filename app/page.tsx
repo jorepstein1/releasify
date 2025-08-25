@@ -1,12 +1,11 @@
 import Image from "next/image";
 import { auth, signIn, signOut } from "@/auth";
-import { getNumUserPlaylists, getUserPlaylists } from "@/app/spotifyApi";
+import { getUserPlaylists } from "@/app/spotifyApi";
 import { Playlists } from "./ui/playlists";
+import { AppBar, Box, Button, Container, Paper, Toolbar } from "@mui/material";
+import { Results } from "./ui/results";
 
-function SignIn({
-  provider,
-  ...props
-}: { provider?: string } & React.ComponentPropsWithRef<"button">) {
+const SignIn: React.FC<{ provider?: string }> = ({ provider }) => {
   return (
     <form
       action={async () => {
@@ -14,15 +13,18 @@ function SignIn({
         await signIn(provider);
       }}
     >
-      <button {...props}>Sign In</button>
+      <Button
+        variant="outlined"
+        type="submit"
+        sx={{ backgroundColor: "black" }}
+      >
+        Sign In
+      </Button>{" "}
     </form>
   );
-}
+};
 
-function SignOut({
-  provider,
-  ...props
-}: { provider?: string } & React.ComponentPropsWithRef<"button">) {
+const SignOut: React.FC = () => {
   return (
     <form
       action={async () => {
@@ -30,32 +32,57 @@ function SignOut({
         await signOut({ redirectTo: "/" });
       }}
     >
-      <button {...props}>Sign Out</button>
+      <Button
+        variant="outlined"
+        type="submit"
+        sx={{ backgroundColor: "black" }}
+      >
+        Sign Out
+      </Button>
     </form>
   );
-}
+};
+
+let PlaylistContainer = async (props: { access_token: string }) => {
+  const playlists = await getUserPlaylists(props.access_token);
+  return <Playlists playlists={playlists} />;
+};
 
 export default async function Home() {
   const session = await auth();
   console.log("session", session);
-  if (!session?.access_token)
-    return (
-      <div>
-        <SignIn />
-      </div>
-    );
-  const playlists = await getUserPlaylists(session.access_token);
   return (
-    <div>
-      <header>
-        <SignOut />
-      </header>
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Playlists playlists={playlists} />
-      </main>
+    <Box>
+      <Box>
+        <AppBar position="sticky">
+          <Container>
+            <Toolbar>
+              {session?.access_token ? <SignOut /> : <SignIn />}
+            </Toolbar>
+          </Container>
+        </AppBar>
+      </Box>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+          gap: "16px",
+        }}
+      >
+        <Paper sx={{ maxHeight: 800, margin: 5 }}>
+          {session?.access_token ? (
+            <PlaylistContainer access_token={session.access_token} />
+          ) : (
+            <SignIn />
+          )}
+        </Paper>
+        <Paper sx={{ maxHeight: 800, overflowY: "auto", margin: 5 }}>
+          <Results tracks={[]} />
+        </Paper>
+      </Box>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <div>footer</div>
       </footer>
-    </div>
+    </Box>
   );
 }
