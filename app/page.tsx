@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { auth, signIn, signOut } from "@/auth";
 import { getUserPlaylists } from "@/app/spotifyApi";
 import { Playlists } from "./ui/playlists";
@@ -43,7 +42,7 @@ const SignOut: React.FC = () => {
   );
 };
 
-let PlaylistContainer = async (props: { access_token: string }) => {
+const PlaylistContainer = async (props: { access_token: string }) => {
   const playlists = await getUserPlaylists(props.access_token);
   return <Playlists playlists={playlists} />;
 };

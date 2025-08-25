@@ -28,32 +28,34 @@ const basic = Buffer.from(`${client_id}:${client_secret}`).toString("base64");
 export async function getNumUserPlaylists(
   accessToken: string,
   options = {},
-): Promise<string> {
+): Promise<number> {
   console.log("Getting num playlists");
-  return fetchEndpoint(`https://api.spotify.com/v1/me/playlists`, accessToken, {
-    limit: "1",
-    ...options,
-  }).then((body) => body.total);
-}
-
-export async function getTracksFromAlbums(
-  albumIds: string[],
-  accessToken: string,
-  options = {},
-): Promise<Track[]> {
-  let albumPromise = fetchEndpoint(
-    "https://api.spotify.com/v1/albums",
+  return fetchEndpoint<{ total: number }>(
+    `https://api.spotify.com/v1/me/playlists`,
     accessToken,
     {
-      ids: albumIds,
+      limit: "1",
       ...options,
     },
-  ) as Promise<{ albums: Album[] }>;
-
-  return albumPromise
-    .then((body) => body.albums)
-    .then((albums) => albums.flatMap((album) => album.tracks.items));
+  ).then((body) => body.total);
 }
+
+// export async function getTracksFromAlbums(
+//   albumIds: string[],
+//   accessToken: string,
+//   options = {},
+// ): Promise<Track[]> {
+//   return fetchEndpoint<{ albums: { tracks: { items: Track[] } }[] }>(
+//     "https://api.spotify.com/v1/albums",
+//     accessToken,
+//     {
+//       ids: albumIds,
+//       ...options,
+//     },
+//   )
+//     .then((body) => body.albums)
+//     .then((albums) => albums.flatMap((album) => album.tracks.items));
+// }
 
 /**
  * Artists
@@ -64,7 +66,7 @@ export async function getArtistAlbums(
   accessToken: string,
   options = {},
 ): Promise<Album[]> {
-  return fetchEndpoint(
+  return fetchEndpoint<{ items: Album[] }>(
     `https://api.spotify.com/v1/artists/${artistId}/albums`,
     accessToken,
     options,
@@ -76,10 +78,10 @@ export async function getNumArtistsAlbums(
   accessToken: string,
   options = {},
 ): Promise<number> {
-  return fetchEndpoint(
+  return fetchEndpoint<{ total: number }>(
     `https://api.spotify.com/v1/artists/${artistId}/albums`,
     accessToken,
-    { limit: 1, ...options },
+    { limit: "1", ...options },
   ).then((body) => body.total);
 }
 
@@ -91,7 +93,7 @@ export async function getUserPlaylists(
   accessToken: string,
   options = {},
 ): Promise<Playlist[]> {
-  return fetchEndpoint(
+  return fetchEndpoint<{ items: Playlist[] }>(
     `https://api.spotify.com/v1/me/playlists`,
     accessToken,
     options,
@@ -159,11 +161,11 @@ export async function performTokenRefresh(refreshToken: string): Promise<{
     });
 }
 
-async function fetchEndpoint(
+async function fetchEndpoint<T>(
   endpoint: string,
   accessToken: string,
-  options: Record<string, any>,
-): Promise<any> {
+  options: Record<string, string>,
+): Promise<T> {
   let url = endpoint;
   if (Object.keys(options).length != 0) {
     url += "?" + new URLSearchParams(options);
@@ -179,7 +181,7 @@ async function fetchEndpoint(
   );
 }
 
-async function success(response: Response, tryAgain: () => Promise<any>) {
+async function success<T>(response: Response, tryAgain: () => Promise<T>) {
   if (!response.ok) {
     if (response.status == 429) {
       // Too Many Requests

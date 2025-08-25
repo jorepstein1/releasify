@@ -1,5 +1,5 @@
-import NextAuth, { type User, type Account } from "next-auth";
-import { getToken, type JWT } from "next-auth/jwt";
+import NextAuth, { type User } from "next-auth";
+import { type JWT } from "next-auth/jwt"; // eslint-disable-line
 import Spotify from "next-auth/providers/spotify";
 import { performTokenRefresh } from "./app/spotifyApi";
 
@@ -15,7 +15,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
   interface JWT {
-    user: User;
+    user?: User;
     access_token?: string;
     refresh_token?: string;
     expires_at?: number;
@@ -58,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.refresh_token) {
         if (!token.expires_at || Date.now() >= token.expires_at * 1000) {
           console.log("Refreshing token");
-          let newToken = await performTokenRefresh(token.refresh_token);
+          const newToken = await performTokenRefresh(token.refresh_token);
           token.access_token = newToken.access_token;
           token.refresh_token = newToken.refresh_token;
           token.expires_at = newToken.expires_at;
