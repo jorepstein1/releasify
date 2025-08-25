@@ -9,20 +9,35 @@ import {
   ListItemText,
   Card,
   CardContent,
+  CardHeader,
 } from "@mui/material";
-import type { Playlist } from "../spotifyApi";
+import { getNumPlaylistTracks, type Playlist } from "../spotifyApi";
 
-export const Playlists: React.FC<{ playlists: Playlist[] }> = ({
-  playlists,
-}) => {
+export const Playlists: React.FC<{
+  playlists: Playlist[];
+  accessToken: string;
+}> = ({ playlists, accessToken }) => {
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
+  const [numTracks, setNumTracks] = React.useState(0);
   const filtered = playlists.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const onSearchClick = async () => {
+    const totalNum = await Promise.all(
+      Array.from(selected).map((id) =>
+        getNumPlaylistTracks(id, accessToken, {}),
+      ),
+    ).then((values) => values.reduce((acc, curr) => acc + curr, 0));
+    setNumTracks(totalNum);
+  };
+
   return (
     <Card>
+      <CardHeader
+        title={`Select Playlists (${selected.size} selected)`}
+      ></CardHeader>
       <CardContent
         sx={{ display: "flex", maxHeight: 500, flexDirection: "column" }}
       >
@@ -58,7 +73,8 @@ export const Playlists: React.FC<{ playlists: Playlist[] }> = ({
             ))}
           </List>
         </Box>
-        <Button>Search</Button>
+        <Button onClick={onSearchClick}>Search</Button>
+        <Box>{numTracks}</Box>
       </CardContent>
     </Card>
   );

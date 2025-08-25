@@ -44,7 +44,7 @@ const SignOut: React.FC = () => {
 
 const PlaylistContainer = async (props: { access_token: string }) => {
   const playlists = await getUserPlaylists(props.access_token);
-  return <Playlists playlists={playlists} />;
+  return <Playlists playlists={playlists} accessToken={props.access_token} />;
 };
 
 export default async function Home() {
