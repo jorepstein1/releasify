@@ -6,6 +6,7 @@ import {
   TextField,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Card,
   CardContent,
@@ -68,6 +69,14 @@ export const Playlists: React.FC<{
                   setSelected(new Set(selected));
                 }}
               >
+                <ListItemIcon>
+                  <img
+                    src={playlist.images.at(-1)?.url}
+                    alt={playlist.name}
+                    width={50}
+                    height={50}
+                  />
+                </ListItemIcon>
                 <ListItemText primary={playlist.name} />
               </ListItemButton>
             ))}

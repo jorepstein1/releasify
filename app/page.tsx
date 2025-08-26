@@ -3,7 +3,7 @@ import { getUserPlaylists } from "@/app/spotifyApi";
 import { Playlists } from "./ui/playlists";
 import { AppBar, Box, Button, Container, Paper, Toolbar } from "@mui/material";
 import { Results } from "./ui/results";
-
+import Image from "next/image";
 const SignIn: React.FC<{ provider?: string }> = ({ provider }) => {
   return (
     <form
@@ -56,6 +56,7 @@ export default async function Home() {
         <AppBar position="sticky">
           <Container>
             <Toolbar>
+              <Image src="/logo.svg" alt="Logo" width={50} height={50} />
               {session?.access_token ? <SignOut /> : <SignIn />}
             </Toolbar>
           </Container>

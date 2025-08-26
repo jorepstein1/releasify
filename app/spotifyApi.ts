@@ -19,6 +19,11 @@ export interface Playlist {
       track: Track;
     }[];
   };
+  images: {
+    url: string;
+    height: number;
+    width: number;
+  }[];
 }
 
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
