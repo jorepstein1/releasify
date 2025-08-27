@@ -12,7 +12,12 @@ import {
   CardContent,
   CardHeader,
 } from "@mui/material";
-import { getNumPlaylistTracks, type Playlist } from "../spotifyApi";
+import {
+  getNumPlaylistTracks,
+  getArtistsFromPlaylist,
+  type Playlist,
+  type Artist,
+} from "../spotifyApi";
 
 export const Playlists: React.FC<{
   playlists: Playlist[];
@@ -21,6 +26,7 @@ export const Playlists: React.FC<{
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
   const [numTracks, setNumTracks] = React.useState(0);
+  const [artists, setArtists] = React.useState<Artist[]>([]);
   const filtered = playlists.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
@@ -32,6 +38,21 @@ export const Playlists: React.FC<{
       ),
     ).then((values) => values.reduce((acc, curr) => acc + curr, 0));
     setNumTracks(totalNum);
+
+    const allArtists = await Promise.all(
+      Array.from(selected).map((id) => getArtistsFromPlaylist(id, accessToken)),
+    ) // get artists from each playlist
+      .then((values) => values.flat())
+      .then((allArtists) => {
+        const artistIdMap = new Map<string, Artist>(
+          allArtists.map((a) => [a.id, a]),
+        );
+        console.log("allArtists", allArtists);
+        const uniqueArtists = Array.from(artistIdMap.values());
+        console.log("Unique Artists", uniqueArtists);
+        return uniqueArtists;
+      }); // remove duplicates
+    setArtists(allArtists);
   };
 
   return (
@@ -71,7 +92,7 @@ export const Playlists: React.FC<{
               >
                 <ListItemIcon>
                   <img
-                    src={playlist.images.at(-1)?.url}
+                    src={playlist.images.at(-1)?.url} // The images are ordered smallest to largest
                     alt={playlist.name}
                     width={50}
                     height={50}
@@ -83,7 +104,13 @@ export const Playlists: React.FC<{
           </List>
         </Box>
         <Button onClick={onSearchClick}>Search</Button>
-        <Box>{numTracks}</Box>
+        <Box>{`numTracks: ${numTracks}`}</Box>
+        <Box>{`artists.length: ${artists.length}`}</Box>
+        <Box sx={{ height: 500, overflowY: "auto" }}>
+          {artists.map((artist) => (
+            <Box key={artist.id}>{artist.name}</Box>
+          ))}
+        </Box>
       </CardContent>
     </Card>
   );

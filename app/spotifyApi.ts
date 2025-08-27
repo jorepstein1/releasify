@@ -2,12 +2,18 @@
 export interface Track {
   id: string;
   name: string;
+  artists: Artist[];
 }
 
 export interface Album {
   tracks: {
     items: Track[];
   };
+}
+
+export interface Artist {
+  id: string;
+  name: string;
 }
 
 export interface Playlist {
@@ -126,6 +132,17 @@ export async function getNumPlaylistTracks(
   );
 }
 
+export async function getArtistsFromPlaylist(
+  playlistId: string,
+  accessToken: string,
+): Promise<Artist[]> {
+  return getPlaylist(playlistId, accessToken).then((body) => {
+    const allArtists = body.tracks.items.flatMap((item) => item.track.artists);
+
+    return allArtists;
+  });
+}
+
 async function getPlaylist(
   playlistId: string,
   accessToken: string,
@@ -192,13 +209,13 @@ async function success<T>(response: Response, tryAgain: () => Promise<T>) {
     if (response.status == 429) {
       // Too Many Requests
       await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
+        setTimeout(resolve, 1000); // TODO: use Retry-After, add maxAttempts/exponential backoff/Jitter
       });
       return tryAgain();
     }
     if (response.status == 503) {
       // Service Unavailable
-      return tryAgain();
+      return tryAgain(); // TODO: add maxAttempts/exponential backoff/jitter
     }
     throw new Error(`HTTP Status: ${response.status} ${response.statusText}`);
   }
