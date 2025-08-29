@@ -71,7 +71,7 @@ export const Playlists = ({
               >
                 <ListItemIcon>
                   <img
-                    src={playlist.images.at(-1)?.url} // The images are ordered smallest to largest
+                    src={playlist.images?.at(-1)?.url} // The images are ordered smallest to largest
                     alt={playlist.name}
                     width={50}
                     height={50}

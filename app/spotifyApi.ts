@@ -149,15 +149,59 @@ export async function getNumArtistsAlbums(
  * PLAYLISTS
  */
 
+interface PlaylistResponse {
+  items: Playlist[];
+  next: string | null;
+}
+
 export async function getUserPlaylists(
   accessToken: string,
   options = {},
 ): Promise<Playlist[]> {
-  return fetchEndpoint<{ items: Playlist[] }>(
+  const allPlaylists: Playlist[] = [];
+
+  return fetchEndpoint<{ items: Playlist[]; next: string | null }>(
     `https://api.spotify.com/v1/me/playlists`,
     accessToken,
     options,
-  ).then((body) => body.items);
+  )
+    .then((body) => {
+      allPlaylists.push(...body.items);
+      if (body.next) {
+        return getNextPlaylistPage(body.next, allPlaylists);
+      }
+      return allPlaylists;
+    })
+    .then((allPlaylists) => {
+      const playlistIdMap = new Map<string, Playlist>(
+        allPlaylists.map((p) => [p.id, p]),
+      );
+      const uniquePlaylists = Array.from(playlistIdMap.values());
+      return uniquePlaylists;
+    });
+}
+
+async function getNextPlaylistPage(
+  url: string,
+  playlists: Playlist[],
+): Promise<Playlist[]> {
+  const session = await auth();
+  const accessToken = session?.access_token;
+  if (!accessToken) {
+    console.log("No access token");
+    return [];
+  }
+
+  const response = (await fetchEndpoint(
+    url,
+    accessToken,
+    {},
+  )) as PlaylistResponse;
+  playlists.push(...response.items);
+  if (response.next) {
+    return getNextPlaylistPage(response.next, playlists);
+  }
+  return playlists;
 }
 
 export async function getPlaylistTracks(
