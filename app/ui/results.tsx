@@ -10,12 +10,12 @@ import { Artist } from "../spotifyApi";
 
 export const Results = ({
   results,
-  isPending,
+  searchIsPending,
 }: {
   results?: Artist[];
-  isPending: boolean;
+  searchIsPending: boolean;
 }) => {
-  if (isPending) {
+  if (searchIsPending) {
     return <div>pending</div>;
   }
   if (!results) {

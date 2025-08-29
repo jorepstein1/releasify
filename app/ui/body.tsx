@@ -27,10 +27,36 @@ export const Body = () => {
     return () => setPlaylists([]);
   }, []); // Get initial list of user's playlists
 
-  const [artists, searchAction, isPending] = useActionState(async () => {
+  const [artists, searchAction, searchIsPending] = useActionState(async () => {
     return await getUniqueArtists(Array.from(selectedPlaylistIds));
   }, []); // The Action to perform the Search
 
+  // useEffect(() => {
+  //   if (!artists.length) {
+  //     return;
+  //   }
+  //   Promise.all(
+  //     artists.map((artist) => {
+  //       // Perform any additional actions for each artist
+  //       return getArtistAlbums(artist.id);
+  //     }),
+  //   )
+  //     .then((albumsLists) => {
+  //       console.log("Albums lists:", albumsLists);
+  //       return albumsLists.flat().filter((album) => {
+  //         const albumTime = Date.parse(album.release_date);
+  //         const nowTime = Date.now();
+  //         const weekAgoTime = nowTime - 50 * 24 * 60 * 60 * 1000;
+  //         return albumTime > weekAgoTime; // return albums less than a week old
+  //       });
+  //     })
+  //     .then((allAlbums) =>
+  //       getTracksFromAlbums(allAlbums.slice(0, 10).map((album) => album.id)),
+  //     )
+  //     .then((tracks) => {
+  //       console.log("Tracks from albums:", tracks);
+  //     });
+  // }, [artists]);
   return (
     <Box
       sx={{
@@ -47,17 +73,13 @@ export const Body = () => {
           flexDirection: "column",
         }}
       >
-        {playlists.length > 0 ? (
-          <Playlists
-            playlists={playlists}
-            playlistsAreLoading={playlistsAreLoading}
-            searchAction={searchAction}
-            selectedPlaylistIds={selectedPlaylistIds}
-            setSelectedPlaylistIds={setSelectedPlaylistIds}
-          />
-        ) : (
-          <div> Sign In </div>
-        )}
+        <Playlists
+          playlists={playlists}
+          playlistsAreLoading={playlistsAreLoading}
+          searchAction={searchAction}
+          selectedPlaylistIds={selectedPlaylistIds}
+          setSelectedPlaylistIds={setSelectedPlaylistIds}
+        />
       </Paper>
       <Paper
         sx={{
@@ -67,7 +89,7 @@ export const Body = () => {
           flexDirection: "column",
         }}
       >
-        <Results results={artists} isPending={isPending} />
+        <Results results={artists} searchIsPending={searchIsPending} />
       </Paper>
     </Box>
   );
