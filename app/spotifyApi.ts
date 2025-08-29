@@ -176,8 +176,7 @@ export async function getUserPlaylists(
       const playlistIdMap = new Map<string, Playlist>(
         allPlaylists.map((p) => [p.id, p]),
       );
-      const uniquePlaylists = Array.from(playlistIdMap.values());
-      return uniquePlaylists;
+      return Array.from(playlistIdMap.values()); // deduplicate
     })
     .then((uniquePlaylists) =>
       uniquePlaylists.map((p) => {

@@ -7,6 +7,8 @@ import { Results } from "./results";
 import {
   GetPlaylists,
   type Playlist,
+  getArtistAlbums,
+  getTracksFromAlbums,
   // getArtistAlbums,
   // getTracksFromAlbums,
   getUniqueArtists,
@@ -27,36 +29,38 @@ export const Body = () => {
     return () => setPlaylists([]);
   }, []); // Get initial list of user's playlists
 
-  const [artists, searchAction, searchIsPending] = useActionState(async () => {
-    return await getUniqueArtists(Array.from(selectedPlaylistIds));
+  const [tracks, searchAction, searchIsPending] = useActionState(async () => {
+    const uniqueArtists = await getUniqueArtists(
+      Array.from(selectedPlaylistIds),
+    );
+    return await Promise.all(
+      uniqueArtists.map((artist) => {
+        // Perform any additional actions for each artist
+        return getArtistAlbums(artist.id);
+      }),
+    )
+      .then((albumsLists) => {
+        console.log("Albums lists:", albumsLists);
+        return albumsLists.flat().filter((album) => {
+          const albumTime = Date.parse(album.release_date);
+          const nowTime = Date.now();
+          const weekAgoTime = nowTime - 7 * 24 * 60 * 60 * 1000;
+          return albumTime > weekAgoTime; // return albums less than a week old
+        });
+      })
+      .then((allAlbums) =>
+        getTracksFromAlbums(allAlbums.map((album) => album.id)),
+      )
+      .then((allTracks) => {
+        const trackMap = new Map(allTracks.map((p) => [p.id, p]));
+        return Array.from(trackMap.values()); // deduplicate
+      })
+      .then((tracks) => {
+        console.log("Tracks from albums:", tracks);
+        return tracks;
+      });
   }, []); // The Action to perform the Search
 
-  // useEffect(() => {
-  //   if (!artists.length) {
-  //     return;
-  //   }
-  //   Promise.all(
-  //     artists.map((artist) => {
-  //       // Perform any additional actions for each artist
-  //       return getArtistAlbums(artist.id);
-  //     }),
-  //   )
-  //     .then((albumsLists) => {
-  //       console.log("Albums lists:", albumsLists);
-  //       return albumsLists.flat().filter((album) => {
-  //         const albumTime = Date.parse(album.release_date);
-  //         const nowTime = Date.now();
-  //         const weekAgoTime = nowTime - 50 * 24 * 60 * 60 * 1000;
-  //         return albumTime > weekAgoTime; // return albums less than a week old
-  //       });
-  //     })
-  //     .then((allAlbums) =>
-  //       getTracksFromAlbums(allAlbums.slice(0, 10).map((album) => album.id)),
-  //     )
-  //     .then((tracks) => {
-  //       console.log("Tracks from albums:", tracks);
-  //     });
-  // }, [artists]);
   return (
     <Box
       sx={{
@@ -89,7 +93,7 @@ export const Body = () => {
           flexDirection: "column",
         }}
       >
-        <Results results={artists} searchIsPending={searchIsPending} />
+        <Results results={tracks} searchIsPending={searchIsPending} />
       </Paper>
     </Box>
   );
