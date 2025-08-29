@@ -36,8 +36,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, account, user }) {
-      console.log("jwt callback", { token, account, user });
       if (account) {
+        console.log("jwt callback", { token, account, user });
         // first time log in
         token = {
           ...token,
@@ -53,10 +53,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token, user }) {
-      console.log("session callback", { session, token });
+      // console.log("session callback", { session, token });
 
       if (token.refresh_token) {
         if (!token.expires_at || Date.now() >= token.expires_at * 1000) {
+          console.log(
+            "Token expires at",
+            token.expires_at ? token.expires_at * 1000 : "unknown",
+          );
+          console.log("Time now is", Date.now());
           console.log("Refreshing token");
           const newToken = await performTokenRefresh(token.refresh_token);
           token.access_token = newToken.access_token;

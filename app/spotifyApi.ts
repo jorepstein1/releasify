@@ -1,4 +1,6 @@
 "use server";
+import { auth } from "@/auth";
+
 export interface Track {
   id: string;
   name: string;
@@ -6,9 +8,11 @@ export interface Track {
 }
 
 export interface Album {
+  id: string;
   tracks: {
     items: Track[];
   };
+  release_date: string; // example 1981-10
 }
 
 export interface Artist {
@@ -33,10 +37,41 @@ export interface Playlist {
 }
 
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
-const client_id = process.env.SPOTIFY_CLIENT_ID;
-const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
+const client_id = process.env.AUTH_SPOTIFY_ID;
+const client_secret = process.env.AUTH_SPOTIFY_SECRET;
 const basic = Buffer.from(`${client_id}:${client_secret}`).toString("base64");
 
+export async function GetPlaylists() {
+  const session = await auth();
+  if (!session?.access_token) return [];
+  return getUserPlaylists(session.access_token);
+}
+
+export async function getUniqueArtists(
+  selectedPlaylistIds: string[],
+): Promise<Artist[]> {
+  console.log("Getting unique artists");
+  const session = await auth();
+  const accessToken = session?.access_token;
+  if (!accessToken) {
+    console.log("No access token");
+    return [];
+  }
+
+  return Promise.all(
+    Array.from(selectedPlaylistIds).map((id) =>
+      getArtistsFromPlaylist(id, accessToken),
+    ),
+  ) // get artists from each playlist
+    .then((values) => values.flat())
+    .then((allArtists) => {
+      const artistIdMap = new Map<string, Artist>(
+        allArtists.map((a) => [a.id, a]),
+      );
+      const uniqueArtists = Array.from(artistIdMap.values());
+      return uniqueArtists;
+    });
+}
 export async function getNumUserPlaylists(
   accessToken: string,
   options = {},
@@ -52,22 +87,28 @@ export async function getNumUserPlaylists(
   ).then((body) => body.total);
 }
 
-// export async function getTracksFromAlbums(
-//   albumIds: string[],
-//   accessToken: string,
-//   options = {},
-// ): Promise<Track[]> {
-//   return fetchEndpoint<{ albums: { tracks: { items: Track[] } }[] }>(
-//     "https://api.spotify.com/v1/albums",
-//     accessToken,
-//     {
-//       ids: albumIds,
-//       ...options,
-//     },
-//   )
-//     .then((body) => body.albums)
-//     .then((albums) => albums.flatMap((album) => album.tracks.items));
-// }
+export async function getTracksFromAlbums(
+  albumIds: string[],
+  options = {},
+): Promise<Track[]> {
+  console.log("Getting tracks from albums");
+  const session = await auth();
+  const accessToken = session?.access_token;
+  if (!accessToken) {
+    console.log("No access token");
+    return [];
+  }
+  return fetchEndpoint<{ albums: { tracks: { items: Track[] } }[] }>(
+    "https://api.spotify.com/v1/albums",
+    accessToken,
+    {
+      ids: albumIds.join(","),
+      ...options,
+    },
+  )
+    .then((body) => body.albums)
+    .then((albums) => albums.flatMap((album) => album.tracks.items));
+}
 
 /**
  * Artists
@@ -75,9 +116,16 @@ export async function getNumUserPlaylists(
 
 export async function getArtistAlbums(
   artistId: string,
-  accessToken: string,
   options = {},
 ): Promise<Album[]> {
+  console.log("Getting artist albums:", artistId);
+  const session = await auth();
+  const accessToken = session?.access_token;
+  if (!accessToken) {
+    console.log("No access token");
+    return [];
+  }
+
   return fetchEndpoint<{ items: Album[] }>(
     `https://api.spotify.com/v1/artists/${artistId}/albums`,
     accessToken,
@@ -137,6 +185,7 @@ export async function getArtistsFromPlaylist(
   accessToken: string,
 ): Promise<Artist[]> {
   return getPlaylist(playlistId, accessToken).then((body) => {
+    console.log(body);
     const allArtists = body.tracks.items.flatMap((item) => item.track.artists);
 
     return allArtists;
@@ -160,16 +209,24 @@ export async function performTokenRefresh(refreshToken: string): Promise<{
   refresh_token: string;
   expires_at: number;
 }> {
+  console.log("Refreshing token");
+  console.log("Using refresh token", refreshToken);
+  console.log("Using client_id", client_id);
+  console.log("Using client_secret", client_secret);
+  const headers = {
+    Authorization: `Basic ${basic}`,
+    "content-type": "application/x-www-form-urlencoded",
+  };
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+  });
+  console.log("Headers:", headers);
+  console.log("Body:", body.toString());
   return await fetch(TOKEN_ENDPOINT, {
     method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
+    headers,
+    body,
   })
     .then(
       (response) => success(response, () => performTokenRefresh(refreshToken)),
@@ -193,6 +250,8 @@ async function fetchEndpoint<T>(
   if (Object.keys(options).length != 0) {
     url += "?" + new URLSearchParams(options);
   }
+  console.log("Fetching", url);
+  // console.log("Fetching - Token", accessToken);
   return fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -217,7 +276,9 @@ async function success<T>(response: Response, tryAgain: () => Promise<T>) {
       // Service Unavailable
       return tryAgain(); // TODO: add maxAttempts/exponential backoff/jitter
     }
-    throw new Error(`HTTP Status: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `HTTP Status: ${response.status} ${response.statusText} ${response.headers}`,
+    );
   }
   return response.json();
 }
