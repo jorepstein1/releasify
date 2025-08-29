@@ -18,17 +18,18 @@ export const Playlists = ({
   searchAction,
   selectedPlaylistIds,
   setSelectedPlaylistIds,
+  playlistsAreLoading,
 }: {
   playlists: Playlist[];
   searchAction: () => void;
   selectedPlaylistIds: Set<string>;
   setSelectedPlaylistIds: (playlists: Set<string>) => void;
+  playlistsAreLoading: boolean;
 }) => {
   const [search, setSearch] = useState("");
   const filtered = playlists.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
-
   return (
     <Card>
       <CardContent
@@ -55,32 +56,36 @@ export const Playlists = ({
             overflowY: "auto",
           }}
         >
-          <List>
-            {filtered.map((playlist) => (
-              <ListItemButton
-                key={playlist.id}
-                selected={selectedPlaylistIds.has(playlist.id)}
-                onClick={() => {
-                  if (selectedPlaylistIds.has(playlist.id)) {
-                    selectedPlaylistIds.delete(playlist.id);
-                  } else {
-                    selectedPlaylistIds.add(playlist.id);
-                  }
-                  setSelectedPlaylistIds(new Set(selectedPlaylistIds));
-                }}
-              >
-                <ListItemIcon>
-                  <img
-                    src={playlist.images?.at(-1)?.url} // The images are ordered smallest to largest
-                    alt={playlist.name}
-                    width={50}
-                    height={50}
-                  />
-                </ListItemIcon>
-                <ListItemText primary={playlist.name} />
-              </ListItemButton>
-            ))}
-          </List>
+          {playlistsAreLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <List>
+              {filtered.map((playlist) => (
+                <ListItemButton
+                  key={playlist.id}
+                  selected={selectedPlaylistIds.has(playlist.id)}
+                  onClick={() => {
+                    if (selectedPlaylistIds.has(playlist.id)) {
+                      selectedPlaylistIds.delete(playlist.id);
+                    } else {
+                      selectedPlaylistIds.add(playlist.id);
+                    }
+                    setSelectedPlaylistIds(new Set(selectedPlaylistIds));
+                  }}
+                >
+                  <ListItemIcon>
+                    <img
+                      src={playlist.images?.at(-1)?.url} // The images are ordered smallest to largest
+                      alt={playlist.name}
+                      width={50}
+                      height={50}
+                    />
+                  </ListItemIcon>
+                  <ListItemText primary={playlist.name} />
+                </ListItemButton>
+              ))}
+            </List>
+          )}
         </Box>
         <form>
           <Button type="submit" formAction={() => searchAction()}>

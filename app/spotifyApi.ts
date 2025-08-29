@@ -178,7 +178,16 @@ export async function getUserPlaylists(
       );
       const uniquePlaylists = Array.from(playlistIdMap.values());
       return uniquePlaylists;
-    });
+    })
+    .then((uniquePlaylists) =>
+      uniquePlaylists.map((p) => {
+        return {
+          id: p.id,
+          name: p.name,
+          images: p.images,
+        } as Playlist;
+      }),
+    );
 }
 
 async function getNextPlaylistPage(
