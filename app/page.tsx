@@ -1,9 +1,7 @@
 import { auth, signIn, signOut } from "@/auth";
-import { getUserPlaylists } from "@/app/spotifyApi";
-import { Playlists } from "./ui/playlists";
-import { AppBar, Box, Button, Container, Paper, Toolbar } from "@mui/material";
-import { Results } from "./ui/results";
-
+import { AppBar, Box, Button, Container, Toolbar } from "@mui/material";
+import Image from "next/image";
+import { Body } from "./ui/body";
 const SignIn: React.FC<{ provider?: string }> = ({ provider }) => {
   return (
     <form
@@ -42,11 +40,6 @@ const SignOut: React.FC = () => {
   );
 };
 
-const PlaylistContainer = async (props: { access_token: string }) => {
-  const playlists = await getUserPlaylists(props.access_token);
-  return <Playlists playlists={playlists} />;
-};
-
 export default async function Home() {
   const session = await auth();
   console.log("session", session);
@@ -56,28 +49,14 @@ export default async function Home() {
         <AppBar position="sticky">
           <Container>
             <Toolbar>
+              <Image src="/logo.svg" alt="Logo" width={50} height={50} />
               {session?.access_token ? <SignOut /> : <SignIn />}
             </Toolbar>
           </Container>
         </AppBar>
       </Box>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
-          gap: "16px",
-        }}
-      >
-        <Paper sx={{ maxHeight: 800, margin: 5 }}>
-          {session?.access_token ? (
-            <PlaylistContainer access_token={session.access_token} />
-          ) : (
-            <SignIn />
-          )}
-        </Paper>
-        <Paper sx={{ maxHeight: 800, overflowY: "auto", margin: 5 }}>
-          <Results tracks={[]} />
-        </Paper>
+      <Box>
+        <Body />
       </Box>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <div>footer</div>

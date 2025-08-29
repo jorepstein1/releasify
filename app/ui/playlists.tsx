@@ -1,31 +1,93 @@
-"use client";
-import * as React from "react";
-import { Box, TextField, List, ListItem, ListItemText } from "@mui/material";
-import type { Playlist } from "../spotifyApi";
+import { useState } from "react";
 
-export const Playlists: React.FC<{ playlists: Playlist[] }> = ({
+import {
+  Box,
+  Button,
+  TextField,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Card,
+  CardContent,
+} from "@mui/material";
+import { type Playlist } from "../spotifyApi";
+
+export const Playlists = ({
   playlists,
+  searchAction,
+  selectedPlaylistIds,
+  setSelectedPlaylistIds,
+}: {
+  playlists: Playlist[];
+  searchAction: () => void;
+  selectedPlaylistIds: Set<string>;
+  setSelectedPlaylistIds: (playlists: Set<string>) => void;
 }) => {
-  const [search, setSearch] = React.useState("");
+  const [search, setSearch] = useState("");
   const filtered = playlists.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
-    <Box sx={{ width: "100%", maxWidth: 400, mx: "auto" }}>
-      <TextField
-        label="Search Playlists"
-        fullWidth
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <List sx={{ height: 500, overflowY: "auto" }}>
-        {filtered.map((playlist) => (
-          <ListItem key={playlist.id} disablePadding>
-            <ListItemText primary={playlist.name} />
-          </ListItem>
-        ))}
-      </List>
-    </Box>
+    <Card>
+      <CardContent
+        sx={{ display: "flex", flexDirection: "column", height: "100%" }}
+      >
+        <Box
+          sx={{
+            fontFamily: "Roboto, sans-serif",
+            fontSize: "var(--text-h4)",
+            fontWeight: "var(--font-weight-normal)",
+            color: "var(--foreground)",
+          }}
+        >{`Select Playlists (${selectedPlaylistIds.size} selected)`}</Box>
+        <TextField
+          label="Search Playlists"
+          fullWidth
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Box
+          sx={{
+            width: "100%",
+            mx: "auto",
+            overflowY: "auto",
+          }}
+        >
+          <List>
+            {filtered.map((playlist) => (
+              <ListItemButton
+                key={playlist.id}
+                selected={selectedPlaylistIds.has(playlist.id)}
+                onClick={() => {
+                  if (selectedPlaylistIds.has(playlist.id)) {
+                    selectedPlaylistIds.delete(playlist.id);
+                  } else {
+                    selectedPlaylistIds.add(playlist.id);
+                  }
+                  setSelectedPlaylistIds(new Set(selectedPlaylistIds));
+                }}
+              >
+                <ListItemIcon>
+                  <img
+                    src={playlist.images.at(-1)?.url} // The images are ordered smallest to largest
+                    alt={playlist.name}
+                    width={50}
+                    height={50}
+                  />
+                </ListItemIcon>
+                <ListItemText primary={playlist.name} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+        <form>
+          <Button type="submit" formAction={() => searchAction()}>
+            Search
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
