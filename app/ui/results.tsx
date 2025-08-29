@@ -6,16 +6,16 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import { Artist } from "../spotifyApi";
+import { Track } from "../spotifyApi";
 
 export const Results = ({
   results,
-  isPending,
+  searchIsPending,
 }: {
-  results?: Artist[];
-  isPending: boolean;
+  results?: Track[];
+  searchIsPending: boolean;
 }) => {
-  if (isPending) {
+  if (searchIsPending) {
     return <div>pending</div>;
   }
   if (!results) {
@@ -45,8 +45,13 @@ export const Results = ({
         >
           <List>
             {results.map((track) => (
-              <ListItem key={track.id} disablePadding>
-                <ListItemText primary={track.name} />
+              <ListItem key={track.id}>
+                <ListItemText
+                  primary={track.name}
+                  secondary={track.artists
+                    .map((artist) => artist.name)
+                    .join(", ")}
+                />
               </ListItem>
             ))}
           </List>
